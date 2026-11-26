@@ -7,7 +7,11 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+import { useAuth } from "../context/AuthContext";
+
 function Settings() {
+  const { logout } = useAuth();
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -90,8 +94,9 @@ function Settings() {
 
         {/* Logout */}
         <button
-          className="flex w-full items-center gap-4 p-5 text-left transition hover:bg-rose-50"
-        >
+  onClick={logout}
+  className="flex w-full items-center gap-4 p-5 text-left transition hover:bg-rose-50"
+>
           <div className="rounded-xl bg-rose-50 p-3 text-rose-600">
             <LogOut size={20} />
           </div>
