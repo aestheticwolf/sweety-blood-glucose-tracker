@@ -7,88 +7,206 @@ import {
   FileText,
 } from "lucide-react";
 
+import axios from "axios";
 import { useEffect, useState } from "react";
-import reportService, { type DailyReport } from "../services/reportService";
-import readingService, { type GlucoseReading } from "../services/readingService";
+import reportService, { type ReportData } from "../services/reportService";
+import type { ReadingSlot } from "../services/readingService";
 
+type ReportType = "daily" | "monthly" | "previous-month";
 
-function Reports() {
-  const [report, setReport] = useState<DailyReport | null>(null);
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-    const day = String(today.getDate()).padStart(2, "0");
-
-    return `${year}-${month}-${day}`;
-  });
-
-  const [loading, setLoading] = useState(true);
-  
-  const [readings, setReadings] = useState<GlucoseReading[]>([]);
-
-  const reportReadings = readings
-  .filter((reading) => reading.reading_date.slice(0, 10) === selectedDate)
-  .map((reading) => ({
-    date: selectedDate,
-    slot: reading.slot,
-    value: reading.value,
-  }));
-
-  const reportStats = [
-  {
-    label: "Highest Reading",
-    value: report?.highest ?? "--",
-    unit: "mg/dL",
-    icon: TrendingUp,
-    style: "bg-orange-50 text-orange-600",
-  },
-  {
-    label: "Lowest Reading",
-    value: report?.lowest ?? "--",
-    unit: "mg/dL",
-    icon: TrendingDown,
-    style: "bg-emerald-50 text-emerald-600",
-  },
-  {
-    label: "Average Reading",
-    value: report?.average ?? "--",
-    unit: "mg/dL",
-    icon: Activity,
-    style: "bg-blue-50 text-blue-600",
-  },
-  {
-    label: "Total Readings",
-    value: report?.count ?? 0,
-    unit: "readings",
-    icon: BarChart3,
-    style: "bg-teal-50 text-teal-600",
-  },
+const reportOptions: { value: ReportType; label: string }[] = [
+  { value: "daily", label: "Daily" },
+  { value: "monthly", label: "Month to Date" },
+  { value: "previous-month", label: "Previous Month" },
 ];
 
- useEffect(() => {
-  const fetchReport = async () => {
-    setLoading(true);
+const slotLabels: Record<ReadingSlot, string> = {
+  morning: "Morning (Fasting)",
+  after_breakfast: "After Breakfast",
+  after_lunch: "After Lunch",
+  after_dinner: "After Dinner",
+};
 
-    try {
-      const [reportData, readingsData] = await Promise.all([
-        reportService.getDailyReport(selectedDate),
-        readingService.getReadings(),
-      ]);
+const emptyMessages: Record<ReportType, { title: string; subtitle: string }> = {
+  daily: {
+    title: "No readings found for this date",
+    subtitle: "Try selecting another date or add a reading for this day.",
+  },
+  monthly: {
+    title: "No readings found for this month-to-date period",
+    subtitle:
+      "Readings logged between the start of the selected month and the selected date will appear here.",
+  },
+  "previous-month": {
+    title: "No readings found for the previous month",
+    subtitle:
+      "No glucose measurements were recorded during the previous complete calendar month.",
+  },
+};
 
-      setReport(reportData);
-      setReadings(readingsData);
-    } catch (error) {
-      console.error("Failed to fetch report:", error);
+function getTodayDate() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function formatDisplayDate(dateValue: string) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+    const [year, month, day] = dateValue.split("-").map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
+  const parsed = new Date(dateValue);
+  if (Number.isNaN(parsed.getTime())) {
+    return dateValue;
+  }
+
+  return parsed.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function Reports() {
+  const [reportType, setReportType] = useState<ReportType>("daily");
+  const [selectedDate, setSelectedDate] = useState(getTodayDate);
+  const [report, setReport] = useState<ReportData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (reportType !== "previous-month" && !selectedDate) {
       setReport(null);
-      setReadings([]);
-    } finally {
+      setError("Please select a valid date.");
       setLoading(false);
+      return;
     }
-  };
 
-  fetchReport();
-}, [selectedDate]);
+    const controller = new AbortController();
+    let isCurrent = true;
+
+    const fetchReport = async () => {
+      setLoading(true);
+      setError("");
+      setReport(null);
+
+      try {
+        let data: ReportData;
+
+        if (reportType === "daily") {
+          data = await reportService.getDailyReport(
+            selectedDate,
+            controller.signal,
+          );
+        } else if (reportType === "monthly") {
+          data = await reportService.getMonthlyReport(
+            selectedDate,
+            controller.signal,
+          );
+        } else {
+          data = await reportService.getPreviousMonthReport(controller.signal);
+        }
+
+        if (isCurrent) {
+          setReport(data);
+        }
+      } catch (err: unknown) {
+        if (!isCurrent || axios.isCancel(err)) {
+          return;
+        }
+
+        const apiError = err as {
+          response?: {
+            data?: {
+              message?: string;
+            };
+          };
+        };
+
+        setReport(null);
+        setError(
+          apiError.response?.data?.message ||
+            "Failed to load report. Please try again.",
+        );
+      } finally {
+        if (isCurrent) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchReport();
+
+    return () => {
+      isCurrent = false;
+      controller.abort();
+    };
+  }, [reportType, selectedDate]);
+
+  const reportReadings = report?.readings ?? [];
+  const stats = report?.stats;
+
+  const reportStats = [
+    {
+      label: "Highest Reading",
+      value: stats?.highest ?? "--",
+      unit: "mg/dL",
+      icon: TrendingUp,
+      style: "bg-orange-50 text-orange-600",
+    },
+    {
+      label: "Lowest Reading",
+      value: stats?.lowest ?? "--",
+      unit: "mg/dL",
+      icon: TrendingDown,
+      style: "bg-emerald-50 text-emerald-600",
+    },
+    {
+      label: "Average Reading",
+      value:
+        stats?.average !== null && stats?.average !== undefined
+          ? stats.average.toFixed(1)
+          : "--",
+      unit: "mg/dL",
+      icon: Activity,
+      style: "bg-blue-50 text-blue-600",
+    },
+    {
+      label: "Total Readings",
+      value: stats?.total ?? 0,
+      unit: "readings",
+      icon: BarChart3,
+      style: "bg-teal-50 text-teal-600",
+    },
+  ];
+
+  const getPeriodLabel = () => {
+    if (report?.period) {
+      if (reportType === "daily") {
+        return `Date: ${formatDisplayDate(report.period.from)}`;
+      }
+      return `Period: ${formatDisplayDate(report.period.from)} – ${formatDisplayDate(report.period.to)}`;
+    }
+
+    if (reportType === "daily" && selectedDate) {
+      return `Date: ${formatDisplayDate(selectedDate)}`;
+    }
+
+    if (reportType === "monthly" && selectedDate) {
+      const monthStart = `${selectedDate.slice(0, 7)}-01`;
+      return `Period: ${formatDisplayDate(monthStart)} – ${formatDisplayDate(selectedDate)}`;
+    }
+
+    return "Previous complete calendar month";
+  };
 
   return (
     <div className="space-y-6">
@@ -113,38 +231,62 @@ function Reports() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button className="rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-medium text-white">
-              Daily
-            </button>
+            {reportOptions.map((option) => {
+              const isActive = reportType === option.value;
 
-            <button className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
-              Month to Date
-            </button>
-
-            <button className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
-              Previous Month
-            </button>
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setReportType(option.value)}
+                  className={`rounded-xl px-4 py-2.5 text-sm font-medium transition ${
+                    isActive
+                      ? "bg-teal-600 text-white"
+                      : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Date Selector */}
-        <div className="mt-5 flex flex-col gap-2 sm:max-w-xs">
-          <label
-            htmlFor="report-date"
-            className="text-sm font-medium text-slate-700"
-          >
-            Select Date
-          </label>
+        <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          {/* Date Selector (hidden for Previous Month) */}
+          {reportType !== "previous-month" && (
+            <div className="flex flex-col gap-2 sm:w-64">
+              <label
+                htmlFor="report-date"
+                className="text-sm font-medium text-slate-700"
+              >
+                {reportType === "daily" ? "Select Date" : "Select End Date"}
+              </label>
 
-        <input
-  id="report-date"
-  type="date"
-  value={selectedDate}
-  onChange={(e) => setSelectedDate(e.target.value)}
-  className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-/>
+              <input
+                id="report-date"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+              />
+            </div>
+          )}
+
+          {/* Active Period Summary */}
+          <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700">
+            <CalendarDays size={16} className="text-teal-600" />
+            <span>{getPeriodLabel()}</span>
+          </div>
         </div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+          {error}
+        </div>
+      )}
 
       {/* Statistics */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -164,7 +306,7 @@ function Reports() {
 
                   <div className="mt-3 flex items-baseline gap-2">
                     <span className="text-3xl font-bold text-slate-900">
-                      {stat.value}
+                      {loading ? "--" : stat.value}
                     </span>
 
                     <span className="text-xs text-slate-500">{stat.unit}</span>
@@ -207,42 +349,59 @@ function Reports() {
               </tr>
             </thead>
 
-         <tbody className="divide-y divide-slate-100">
-  {loading ? (
-    <tr>
-      <td colSpan={3} className="px-5 py-8 text-center text-sm text-slate-500">
-        Loading readings...
-      </td>
-    </tr>
-  ) : reportReadings.length === 0 ? (
-    <tr>
-      <td colSpan={3} className="px-5 py-8 text-center text-sm text-slate-500">
-        No readings found for this date.
-      </td>
-    </tr>
-  ) : (
-    reportReadings.map((reading, index) => (
-      <tr key={index} className="transition hover:bg-slate-50">
-        <td className="px-5 py-4 text-sm text-slate-600">
-          {reading.date}
-        </td>
+            <tbody className="divide-y divide-slate-100">
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="px-5 py-10 text-center text-sm text-slate-500"
+                  >
+                    Loading report readings...
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="px-5 py-10 text-center text-sm text-rose-600"
+                  >
+                    Unable to load readings for this report.
+                  </td>
+                </tr>
+              ) : reportReadings.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-5 py-10 text-center">
+                    <p className="text-sm font-medium text-slate-700">
+                      {emptyMessages[reportType].title}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {emptyMessages[reportType].subtitle}
+                    </p>
+                  </td>
+                </tr>
+              ) : (
+                reportReadings.map((reading) => (
+                  <tr key={reading.id} className="transition hover:bg-slate-50">
+                    <td className="px-5 py-4 text-sm text-slate-600">
+                      {formatDisplayDate(reading.reading_date)}
+                    </td>
 
-        <td className="px-5 py-4">
-          <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">
-            {reading.slot}
-          </span>
-        </td>
+                    <td className="px-5 py-4">
+                      <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">
+                        {slotLabels[reading.slot] ?? reading.slot}
+                      </span>
+                    </td>
 
-        <td className="px-5 py-4">
-          <span className="font-semibold text-slate-900">
-            {reading.value}
-          </span>
-          <span className="ml-1 text-xs text-slate-500">mg/dL</span>
-        </td>
-      </tr>
-    ))
-  )}
-</tbody>
+                    <td className="px-5 py-4">
+                      <span className="font-semibold text-slate-900">
+                        {reading.value}
+                      </span>
+                      <span className="ml-1 text-xs text-slate-500">mg/dL</span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
           </table>
         </div>
       </div>
