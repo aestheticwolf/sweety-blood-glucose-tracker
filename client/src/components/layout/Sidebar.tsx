@@ -1,4 +1,5 @@
 import { LayoutDashboard, Activity, ChartNoAxesCombined, Settings, Heart } from "lucide-react";
+import { NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 const navigation = [
@@ -56,14 +57,21 @@ function Sidebar() {
             const Icon = item.icon;
 
             return (
-              <a
+              <NavLink
                 key={item.name}
-                href={item.path}
-                className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                to={item.path}
+                end={item.path === "/"}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors ${
+                    isActive
+                      ? "bg-teal-50 text-teal-700"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`
+                }
               >
                 <Icon size={19} />
                 {item.name}
-              </a>
+              </NavLink>
             );
           })}
         </div>
