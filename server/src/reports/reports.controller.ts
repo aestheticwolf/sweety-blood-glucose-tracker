@@ -1,5 +1,8 @@
 import type { Request, Response } from "express";
+import { z } from "zod";
 import { pool } from "../database/connection.js";
+
+const reportDateSchema = z.string().date("Please provide a valid date.");
 
 const getStats = (readings: { value: number }[]) => {
   if (readings.length === 0) {
@@ -52,17 +55,20 @@ const getDailyReadings = async (
 export const getDailyReport = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
-    const date = req.query.date as string;
 
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized." });
     }
 
-    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    const parsedDate = reportDateSchema.safeParse(req.query.date);
+
+    if (!parsedDate.success) {
       return res.status(400).json({
         message: "Please provide a valid date.",
       });
     }
+
+    const date = parsedDate.data;
 
     const readings = await getDailyReadings(userId, date);
 
@@ -84,17 +90,20 @@ export const getDailyReport = async (req: Request, res: Response) => {
 export const getMonthlyReport = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
-    const date = req.query.date as string;
 
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized." });
     }
 
-    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    const parsedDate = reportDateSchema.safeParse(req.query.date);
+
+    if (!parsedDate.success) {
       return res.status(400).json({
         message: "Please provide a valid date.",
       });
     }
+
+    const date = parsedDate.data;
 
     const startDate = `${date.slice(0, 7)}-01`;
 

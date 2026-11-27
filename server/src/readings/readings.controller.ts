@@ -1,6 +1,9 @@
 import type { Request, Response } from "express";
+import { z } from "zod";
 import { pool } from "../database/connection.js";
 import { createReadingSchema } from "./readings.validation.js";
+
+const readingIdSchema = z.string().uuid();
 
 
 
@@ -164,6 +167,12 @@ export const updateReading = async (req: Request, res: Response) => {
       });
     }
 
+    if (!readingIdSchema.safeParse(id).success) {
+      return res.status(400).json({
+        message: "Invalid reading ID.",
+      });
+    }
+
     const validation = createReadingSchema.safeParse(req.body);
 
     if (!validation.success) {
@@ -245,6 +254,12 @@ export const deleteReading = async (req: Request, res: Response) => {
     if (!userId) {
       return res.status(401).json({
         message: "Unauthorized.",
+      });
+    }
+
+    if (!readingIdSchema.safeParse(id).success) {
+      return res.status(400).json({
+        message: "Invalid reading ID.",
       });
     }
 
