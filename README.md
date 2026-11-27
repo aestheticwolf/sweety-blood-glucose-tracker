@@ -22,16 +22,19 @@ Sweety is a web application for recording and managing blood glucose readings. U
 - Prevent duplicate readings for the same date and time slot.
 - Maximum of four readings per day.
 - Validate glucose values between 40 and 600 mg/dL.
+- Paginated reading history.
 
 ### Dashboard
-- Glucose reading statistics.
-- Recent readings.
-- Quick access to readings and reports.
+
+- Today's summary statistics (average, highest, lowest and total readings).
+- Daily reading slot status.
+- Overview of the four daily reading slots: Morning, After Breakfast, After Lunch and After Dinner.
 
 ### Reports
 - **Daily Report:** Shows readings for the selected date, including individual reading slots, highest, lowest, average and total readings.
 - **Month-to-Date Report:** Covers the first day of the selected month through the selected date.
-- **Monthly Report:** Covers the previous complete calendar month.
+- **Previous Month Report:** Covers the complete previous calendar month.
+- **Monthly Glucose Chart:** Visualizes glucose readings throughout the selected month.
 
 ## Tech Stack
 
@@ -341,14 +344,12 @@ Start PostgreSQL, configure `server/.env` and `client/.env`, and run `npm run de
 - A maximum of four readings can be recorded per day.
 - The Daily report uses the selected date.
 - The Month-to-Date report covers the first day of the month through the selected date.
-- The Monthly report represents the previous complete calendar month.
+- The Previous Month report represents the previous complete calendar month.
 
 ## Improvements With More Time
 
-- Add pagination to the readings history.
-- Add charts to visualize glucose trends over time.
 - Add automated frontend and backend tests.
 - Add Docker support for easier setup and deployment.
-- Improve responsive layouts and mobile usability.
 - Add reminders for recording readings.
 - Expand reporting and data visualization capabilities.
+- Further improve responsive layouts and mobile usability.
