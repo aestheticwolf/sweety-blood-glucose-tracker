@@ -61,26 +61,27 @@ Sweety is a web application for recording and managing blood glucose readings. U
 ```text
 sweety/
 ├── client/
-│   └── src/
-│       ├── assets/
-│       ├── components/
-│       ├── context/
-│       ├── pages/
-│        ├── services/
-│        ├── types/
-│        └── utils/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   ├── context/
+│   │   ├── pages/
+│   │   └── services/
+│   └── .env.example
 │
 ├── server/
-│   └── src/
-│       ├── auth/
-│       ├── database/
-│       │   ├── connection.ts
-│       │   └── schema.sql
-│       ├── readings/
-│       ├── reports/
-│       ├── routes/
-│       ├── types/
-│       └── index.ts
+│   ├── src/
+│   │   ├── auth/
+│   │   ├── database/
+│   │   │   ├── connection.ts
+│   │   │   ├── schema.sql
+│   │   │   └── seed.ts
+│   │   ├── readings/
+│   │   ├── reports/
+│   │   ├── routes/
+│   │   ├── types/
+│   │   └── index.ts
+│   └── .env.example
 │
 └── README.md
 ```
@@ -196,7 +197,11 @@ An index is created on the user ID and reading date to support reading history r
 
 ## Environment Configuration
 
-Create a `.env` file inside the `server` directory.
+Example templates are provided in `server/.env.example` and `client/.env.example`.
+
+### Backend (`server/.env`)
+
+Create a `.env` file inside the `server` directory:
 
 ```env
 PORT=5000
@@ -212,7 +217,17 @@ JWT_SECRET=your_jwt_secret
 
 Replace the example values with your local PostgreSQL configuration and a secure JWT secret.
 
-Do not commit your actual `.env` file or expose credentials.
+### Frontend (`client/.env`)
+
+Create a `.env` file inside the `client` directory:
+
+```env
+VITE_API_URL=http://localhost:5000/api
+```
+
+`VITE_API_URL` sets the base API URL used by Axios in `client/src/services/api.ts` (matching the default backend port `5000`).
+
+Do not commit your actual `.env` files or expose credentials.
 
 ## Server Setup and Run
 
@@ -277,6 +292,30 @@ Vite will display a local development URL in the terminal. Open that URL in your
 | `npm run lint` | Run ESLint |
 | `npm run preview` | Preview the production build |
 
+## Testing and Verification
+
+Automated unit or integration tests are not currently implemented in this project.
+
+### Available Verification Commands
+
+Backend (`cd server`):
+
+```bash
+npm run typecheck
+npm run build
+```
+
+Frontend (`cd client`):
+
+```bash
+npm run lint
+npm run build
+```
+
+### Manual Functional Testing
+
+Start PostgreSQL, configure `server/.env` and `client/.env`, and run `npm run dev` in both `server/` and `client/` to manually verify registration, login, user isolation, reading CRUD and validation rules, and the Daily, Month-to-Date, and Previous Month reports (using either a new account or the optional demo account from `npm run seed`).
+
 ## Validation Rules
 
 - A glucose value is required.
@@ -284,6 +323,7 @@ Vite will display a local development URL in the terminal. Open that URL in your
 - Values must be between 40 and 600 mg/dL.
 - Only one reading is allowed per time slot for each date.
 - A maximum of four readings is allowed per day.
+- Reading dates cannot be in the future.
 
 ## Notes
 
