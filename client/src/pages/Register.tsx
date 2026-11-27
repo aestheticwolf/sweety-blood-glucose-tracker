@@ -30,10 +30,19 @@ function Register() {
     try {
       await register({ name, email, password });
       navigate("/", { replace: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const apiError = err as {
+        response?: {
+          data?: {
+            message?: string;
+            error?: string;
+          };
+        };
+      };
+
       setError(
-        err.response?.data?.message ||
-          err.response?.data?.error ||
+        apiError.response?.data?.message ||
+          apiError.response?.data?.error ||
           "Unable to create account. Please try again.",
       );
     } finally {

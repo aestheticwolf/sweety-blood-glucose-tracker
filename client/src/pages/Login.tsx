@@ -21,10 +21,19 @@ function Login() {
     try {
       await login({ email, password });
       navigate("/", { replace: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const apiError = err as {
+        response?: {
+          data?: {
+            message?: string;
+            error?: string;
+          };
+        };
+      };
+
       setError(
-        err.response?.data?.message ||
-          err.response?.data?.error ||
+        apiError.response?.data?.message ||
+          apiError.response?.data?.error ||
           "Unable to login. Please check your credentials.",
       );
     } finally {

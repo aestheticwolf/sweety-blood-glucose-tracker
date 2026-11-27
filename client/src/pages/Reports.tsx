@@ -148,9 +148,6 @@ function Reports() {
 
   useEffect(() => {
     if (reportType !== "previous-month" && !selectedDate) {
-      setReport(null);
-      setError("Please select a valid date.");
-      setLoading(false);
       return;
     }
 
@@ -410,7 +407,14 @@ function Reports() {
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => setReportType(option.value)}
+                  onClick={() => {
+                    setReportType(option.value);
+                    if (option.value !== "previous-month" && !selectedDate) {
+                      setReport(null);
+                      setError("Please select a valid date.");
+                      setLoading(false);
+                    }
+                  }}
                   className={`rounded-xl px-4 py-2.5 text-sm font-medium transition ${
                     isActive
                       ? "bg-teal-600 text-white"
@@ -439,7 +443,15 @@ function Reports() {
                 id="report-date"
                 type="date"
                 value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSelectedDate(value);
+                  if (!value) {
+                    setReport(null);
+                    setError("Please select a valid date.");
+                    setLoading(false);
+                  }
+                }}
                 className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
               />
             </div>
