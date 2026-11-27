@@ -10,7 +10,9 @@ import {
 import { useAuth } from "../context/AuthContext";
 
 function Settings() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
+  const userName = user?.name?.trim() || "User";
+  const userInitial = userName.charAt(0).toUpperCase();
 
   return (
     <div className="space-y-6">
@@ -28,11 +30,11 @@ function Settings() {
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-xl font-semibold text-teal-700">
-            U
+            {userInitial}
           </div>
 
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Your Account</h2>
+            <h2 className="text-lg font-semibold text-slate-900">{userName}</h2>
             <p className="text-sm text-slate-500">Glucose Tracker</p>
           </div>
         </div>

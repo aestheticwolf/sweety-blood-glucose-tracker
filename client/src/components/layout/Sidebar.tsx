@@ -1,4 +1,5 @@
 import { LayoutDashboard, Activity, ChartNoAxesCombined, Settings, Heart } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 const navigation = [
   {
@@ -24,6 +25,10 @@ const navigation = [
 ];
 
 function Sidebar() {
+  const { user } = useAuth();
+  const userName = user?.name?.trim() || "User";
+  const userInitial = userName.charAt(0).toUpperCase();
+
   return (
     <aside className="flex h-screen w-64 flex-col border-r border-slate-200 bg-white px-5 py-6">
       {/* Brand */}
@@ -68,11 +73,11 @@ function Sidebar() {
       <div className="border-t border-slate-200 pt-4">
         <div className="flex items-center gap-3 rounded-xl px-2 py-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-700">
-            U
+            {userInitial}
           </div>
 
           <div>
-            <p className="text-sm font-medium text-slate-800">Your Account</p>
+            <p className="text-sm font-medium text-slate-800">{userName}</p>
             <p className="text-xs text-slate-500">Personal health</p>
           </div>
         </div>
