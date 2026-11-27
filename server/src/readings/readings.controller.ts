@@ -91,6 +91,33 @@ export const getReadings = async (req: Request, res: Response) => {
       });
     }
 
+    const rawPage = Array.isArray(req.query.page)
+      ? req.query.page[0]
+      : req.query.page;
+    const rawLimit = Array.isArray(req.query.limit)
+      ? req.query.limit[0]
+      : req.query.limit;
+
+    const parsedPage = Number.parseInt(String(rawPage ?? ""), 10);
+    const parsedLimit = Number.parseInt(String(rawLimit ?? ""), 10);
+
+    const page = Number.isFinite(parsedPage) && parsedPage >= 1 ? parsedPage : 1;
+    const limit =
+      Number.isFinite(parsedLimit) && parsedLimit >= 1
+        ? Math.min(100, parsedLimit)
+        : 20;
+    const offset = (page - 1) * limit;
+
+    const countResult = await pool.query<{ total: string }>(
+      `SELECT COUNT(*) AS total
+       FROM readings
+       WHERE user_id = $1`,
+      [userId],
+    );
+
+    const totalReadings = Number(countResult.rows[0]?.total ?? 0);
+    const totalPages = Math.ceil(totalReadings / limit);
+
     const result = await pool.query(
       `SELECT
   id,
@@ -101,14 +128,21 @@ export const getReadings = async (req: Request, res: Response) => {
   updated_at
 FROM readings
 WHERE user_id = $1
-ORDER BY reading_date DESC, created_at DESC`,
-      [userId],
+ORDER BY reading_date DESC, created_at DESC
+LIMIT $2 OFFSET $3`,
+      [userId, limit, offset],
     );
 
     return res.status(200).json({
       message: "Glucose readings retrieved successfully.",
       count: result.rows.length,
       readings: result.rows,
+      pagination: {
+        page,
+        limit,
+        totalReadings,
+        totalPages,
+      },
     });
   } catch (error) {
     console.error("Get readings error:", error);

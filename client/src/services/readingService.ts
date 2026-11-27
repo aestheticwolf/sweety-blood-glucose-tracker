@@ -27,10 +27,35 @@ export interface UpdateReadingData {
   value: number;
 }
 
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  totalReadings: number;
+  totalPages: number;
+}
+
+export interface PaginatedReadingsResponse {
+  readings: GlucoseReading[];
+  pagination: PaginationMeta;
+}
+
 const readingService = {
   getReadings: async (): Promise<GlucoseReading[]> => {
     const response = await api.get("/readings");
     return response.data.readings;
+  },
+
+  getPaginatedReadings: async (
+    page = 1,
+    limit = 20,
+  ): Promise<PaginatedReadingsResponse> => {
+    const response = await api.get("/readings", {
+      params: { page, limit },
+    });
+    return {
+      readings: response.data.readings ?? [],
+      pagination: response.data.pagination,
+    };
   },
 
   createReading: async (data: CreateReadingData) => {

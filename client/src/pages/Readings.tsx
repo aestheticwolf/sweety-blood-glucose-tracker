@@ -10,14 +10,25 @@ import { useEffect, useState } from "react";
 
 import readingService, {
   type GlucoseReading,
+  type PaginationMeta,
 } from "../services/readingService";
 
 import ReadingForm from "../components/ReadingForm";
 import type { CreateReadingData } from "../services/readingService";
 
+const PAGE_LIMIT = 20;
 
 function Readings() {
   const [readings, setReadings] = useState<GlucoseReading[]>([]);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<PaginationMeta>({
+    page: 1,
+    limit: PAGE_LIMIT,
+    totalReadings: 0,
+    totalPages: 0,
+  });
+  const [loggedTodayCount, setLoggedTodayCount] = useState(0);
+  const [latestReading, setLatestReading] = useState<GlucoseReading | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -28,11 +39,46 @@ const [editingReading, setEditingReading] = useState<GlucoseReading | null>(null
 const [deletingReading, setDeletingReading] = useState<GlucoseReading | null>(null);
 const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchReadings = async () => {
+  const today = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Kolkata",
+}).format(new Date());
+
+  const applyPageData = (
+    targetPage: number,
+    data: { readings: GlucoseReading[]; pagination: PaginationMeta },
+  ) => {
+    if (
+      data.readings.length === 0 &&
+      targetPage > 1 &&
+      data.pagination.totalPages < targetPage
+    ) {
+      setLoading(true);
+      setPage(Math.max(1, data.pagination.totalPages));
+      return;
+    }
+
+    setReadings(data.readings);
+    setPagination(data.pagination);
+
+    if (targetPage === 1) {
+      setLoggedTodayCount(
+        data.readings.filter(
+          (reading) => reading.reading_date.slice(0, 10) === today,
+        ).length,
+      );
+      setLatestReading(data.readings.length > 0 ? data.readings[0] : null);
+    }
+  };
+
+  const fetchReadings = async (targetPage = page) => {
     try {
+      setLoading(true);
       setError("");
-      const data = await readingService.getReadings();
-      setReadings(data);
+      const data = await readingService.getPaginatedReadings(
+        targetPage,
+        PAGE_LIMIT,
+      );
+      applyPageData(targetPage, data);
     } catch {
       setError("Failed to load glucose readings.");
     } finally {
@@ -41,20 +87,58 @@ const [isDeleting, setIsDeleting] = useState(false);
   };
 
   useEffect(() => {
-    fetchReadings();
-  }, []);
+    let isCurrent = true;
 
-  const today = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Asia/Kolkata",
-}).format(new Date());
+    const loadReadings = async () => {
+      try {
+        const data = await readingService.getPaginatedReadings(
+          page,
+          PAGE_LIMIT,
+        );
 
-  const totalReadings = readings.length;
+        if (!isCurrent) return;
 
-  const loggedToday = readings.filter(
-  (reading) => reading.reading_date.slice(0, 10) === today
-).length;
+        setError("");
+        if (
+          data.readings.length === 0 &&
+          page > 1 &&
+          data.pagination.totalPages < page
+        ) {
+          setPage(Math.max(1, data.pagination.totalPages));
+          return;
+        }
 
-const latestReading = readings.length > 0 ? readings[0] : null;
+        setReadings(data.readings);
+        setPagination(data.pagination);
+
+        if (page === 1) {
+          setLoggedTodayCount(
+            data.readings.filter(
+              (reading) => reading.reading_date.slice(0, 10) === today,
+            ).length,
+          );
+          setLatestReading(data.readings.length > 0 ? data.readings[0] : null);
+        }
+      } catch {
+        if (isCurrent) {
+          setError("Failed to load glucose readings.");
+        }
+      } finally {
+        if (isCurrent) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadReadings();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [page, today]);
+
+  const totalReadings = pagination.totalReadings;
+  const loggedToday = loggedTodayCount;
 
   return (
     <div className="space-y-6">
@@ -242,6 +326,43 @@ const latestReading = readings.length > 0 ? readings[0] : null;
   </div>
 )}
         </div>
+
+        {!error && pagination.totalPages > 0 && (
+          <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-slate-500">
+              Page <span className="font-medium text-slate-700">{page}</span> of{" "}
+              <span className="font-medium text-slate-700">
+                {pagination.totalPages}
+              </span>
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setLoading(true);
+                  setPage((prev) => Math.max(1, prev - 1));
+                }}
+                disabled={loading || page <= 1}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Previous
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setLoading(true);
+                  setPage((prev) => prev + 1);
+                }}
+                disabled={loading || page >= pagination.totalPages}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
      {isFormOpen && (
@@ -257,13 +378,21 @@ const latestReading = readings.length > 0 ? readings[0] : null;
 
         if (editingReading) {
           await readingService.updateReading(editingReading.id, data);
+          setIsFormOpen(false);
+          setEditingReading(null);
+          await fetchReadings(page);
         } else {
           await readingService.createReading(data);
-        }
+          setIsFormOpen(false);
+          setEditingReading(null);
 
-        setIsFormOpen(false);
-        setEditingReading(null);
-        await fetchReadings();
+          if (page !== 1) {
+            setLoading(true);
+            setPage(1);
+          } else {
+            await fetchReadings(1);
+          }
+        }
       } finally {
         setIsSubmitting(false);
       }
@@ -307,7 +436,7 @@ const latestReading = readings.length > 0 ? readings[0] : null;
       await readingService.deleteReading(deletingReading.id);
 
       setDeletingReading(null);
-      await fetchReadings();
+      await fetchReadings(page);
     } catch {
       setError("Failed to delete reading. Please try again.");
     } finally {
