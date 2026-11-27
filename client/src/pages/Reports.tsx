@@ -1,4 +1,3 @@
-
 import {
   BarChart3,
   TrendingUp,
@@ -8,46 +7,89 @@ import {
   FileText,
 } from "lucide-react";
 
-const reportStats = [
+import { useEffect, useState } from "react";
+import reportService, { type DailyReport } from "../services/reportService";
+import readingService, { type GlucoseReading } from "../services/readingService";
+
+
+function Reports() {
+  const [report, setReport] = useState<DailyReport | null>(null);
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  });
+
+  const [loading, setLoading] = useState(true);
+  
+  const [readings, setReadings] = useState<GlucoseReading[]>([]);
+
+  const reportReadings = readings
+  .filter((reading) => reading.reading_date.slice(0, 10) === selectedDate)
+  .map((reading) => ({
+    date: selectedDate,
+    slot: reading.slot,
+    value: reading.value,
+  }));
+
+  const reportStats = [
   {
     label: "Highest Reading",
-    value: "148",
+    value: report?.highest ?? "--",
     unit: "mg/dL",
     icon: TrendingUp,
     style: "bg-orange-50 text-orange-600",
   },
   {
     label: "Lowest Reading",
-    value: "98",
+    value: report?.lowest ?? "--",
     unit: "mg/dL",
     icon: TrendingDown,
     style: "bg-emerald-50 text-emerald-600",
   },
   {
     label: "Average Reading",
-    value: "124.0",
+    value: report?.average ?? "--",
     unit: "mg/dL",
     icon: Activity,
     style: "bg-blue-50 text-blue-600",
   },
   {
     label: "Total Readings",
-    value: "12",
+    value: report?.count ?? 0,
     unit: "readings",
     icon: BarChart3,
     style: "bg-teal-50 text-teal-600",
   },
 ];
 
-const reportReadings = [
-  { date: "Nov 27, 2026", slot: "Morning", value: 98 },
-  { date: "Nov 27, 2026", slot: "After Breakfast", value: 148 },
-  { date: "Nov 27, 2026", slot: "After Lunch", value: 126 },
-  { date: "Nov 26, 2026", slot: "After Dinner", value: 135 },
-  { date: "Nov 26, 2026", slot: "Morning", value: 105 },
-];
+ useEffect(() => {
+  const fetchReport = async () => {
+    setLoading(true);
 
-function Reports() {
+    try {
+      const [reportData, readingsData] = await Promise.all([
+        reportService.getDailyReport(selectedDate),
+        readingService.getReadings(),
+      ]);
+
+      setReport(reportData);
+      setReadings(readingsData);
+    } catch (error) {
+      console.error("Failed to fetch report:", error);
+      setReport(null);
+      setReadings([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchReport();
+}, [selectedDate]);
+
   return (
     <div className="space-y-6">
       {/* Page Heading */}
@@ -94,12 +136,13 @@ function Reports() {
             Select Date
           </label>
 
-          <input
-            id="report-date"
-            type="date"
-            defaultValue="2026-11-27"
-            className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-          />
+        <input
+  id="report-date"
+  type="date"
+  value={selectedDate}
+  onChange={(e) => setSelectedDate(e.target.value)}
+  className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+/>
         </div>
       </div>
 
@@ -155,7 +198,7 @@ function Reports() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[600px] text-left">
+          <table className="w-full min-w-150 text-left">
             <thead className="bg-slate-50">
               <tr className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <th className="px-5 py-3.5">Date</th>
@@ -164,28 +207,42 @@ function Reports() {
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-slate-100">
-              {reportReadings.map((reading, index) => (
-                <tr key={index} className="transition hover:bg-slate-50">
-                  <td className="px-5 py-4 text-sm text-slate-600">
-                    {reading.date}
-                  </td>
+         <tbody className="divide-y divide-slate-100">
+  {loading ? (
+    <tr>
+      <td colSpan={3} className="px-5 py-8 text-center text-sm text-slate-500">
+        Loading readings...
+      </td>
+    </tr>
+  ) : reportReadings.length === 0 ? (
+    <tr>
+      <td colSpan={3} className="px-5 py-8 text-center text-sm text-slate-500">
+        No readings found for this date.
+      </td>
+    </tr>
+  ) : (
+    reportReadings.map((reading, index) => (
+      <tr key={index} className="transition hover:bg-slate-50">
+        <td className="px-5 py-4 text-sm text-slate-600">
+          {reading.date}
+        </td>
 
-                  <td className="px-5 py-4">
-                    <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">
-                      {reading.slot}
-                    </span>
-                  </td>
+        <td className="px-5 py-4">
+          <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">
+            {reading.slot}
+          </span>
+        </td>
 
-                  <td className="px-5 py-4">
-                    <span className="font-semibold text-slate-900">
-                      {reading.value}
-                    </span>
-                    <span className="ml-1 text-xs text-slate-500">mg/dL</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+        <td className="px-5 py-4">
+          <span className="font-semibold text-slate-900">
+            {reading.value}
+          </span>
+          <span className="ml-1 text-xs text-slate-500">mg/dL</span>
+        </td>
+      </tr>
+    ))
+  )}
+</tbody>
           </table>
         </div>
       </div>

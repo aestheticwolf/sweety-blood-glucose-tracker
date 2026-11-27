@@ -21,3 +21,9 @@ Thumbs.db
 # IDE
 .vscode/*
 !.vscode/extensions.json
+
+# TypeScript generated files in server/src
+server/src/**/*.js
+server/src/**/*.js.map
+server/src/**/*.d.ts
+server/src/**/*.d.ts.map

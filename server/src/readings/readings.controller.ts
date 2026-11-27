@@ -24,7 +24,9 @@ export const createReading = async (req: Request, res: Response) => {
     }
 
     // Prevent future dates
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date().toLocaleDateString("en-CA", {
+  timeZone: "Asia/Kolkata",
+});
 
     if (reading_date > today) {
       return res.status(400).json({
@@ -90,10 +92,16 @@ export const getReadings = async (req: Request, res: Response) => {
     }
 
     const result = await pool.query(
-      `SELECT id, reading_date, slot, value, created_at, updated_at
-       FROM readings
-       WHERE user_id = $1
-       ORDER BY reading_date DESC, created_at DESC`,
+      `SELECT
+  id,
+  TO_CHAR(reading_date, 'YYYY-MM-DD') AS reading_date,
+  slot,
+  value,
+  created_at,
+  updated_at
+FROM readings
+WHERE user_id = $1
+ORDER BY reading_date DESC, created_at DESC`,
       [userId],
     );
 
@@ -132,7 +140,9 @@ export const updateReading = async (req: Request, res: Response) => {
 
     const { reading_date, slot, value } = validation.data;
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date().toLocaleDateString("en-CA", {
+  timeZone: "Asia/Kolkata",
+});
 
     if (reading_date > today) {
       return res.status(400).json({

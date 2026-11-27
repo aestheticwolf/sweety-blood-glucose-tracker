@@ -1,3 +1,4 @@
+
 import {
   Activity,
   TrendingUp,
@@ -6,10 +7,48 @@ import {
   Clock,
 } from "lucide-react";
 
-const summaryCards = [
+import { useEffect, useState } from "react";
+import reportService, { type DailyReport } from "../services/reportService";
+import readingService, { type GlucoseReading } from "../services/readingService";
+
+function getTodayDate() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function Dashboard() {
+  const [dailyReport, setDailyReport] = useState<DailyReport | null>(null);
+  const [readings, setReadings] = useState<GlucoseReading[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const [report, allReadings] = await Promise.all([
+          reportService.getDailyReport(getTodayDate()),
+          readingService.getReadings(),
+        ]);
+
+        setDailyReport(report);
+        setReadings(allReadings);
+      } catch (error) {
+        console.error("Failed to fetch dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  const summaryCards = [
   {
     title: "Today's Average",
-    value: "124",
+    value: dailyReport?.average ?? "--",
     unit: "mg/dL",
     description: "Based on today's readings",
     icon: Activity,
@@ -17,7 +56,7 @@ const summaryCards = [
   },
   {
     title: "Highest Reading",
-    value: "148",
+    value: dailyReport?.highest ?? "--",
     unit: "mg/dL",
     description: "Today's highest value",
     icon: TrendingUp,
@@ -25,7 +64,7 @@ const summaryCards = [
   },
   {
     title: "Lowest Reading",
-    value: "98",
+    value: dailyReport?.lowest ?? "--",
     unit: "mg/dL",
     description: "Today's lowest value",
     icon: TrendingDown,
@@ -33,7 +72,7 @@ const summaryCards = [
   },
   {
     title: "Total Readings",
-    value: "3",
+    value: dailyReport?.count ?? 0,
     unit: "of 4",
     description: "Daily reading slots",
     icon: Droplets,
@@ -41,36 +80,53 @@ const summaryCards = [
   },
 ];
 
-const todayReadings = [
+ const readingSlots = [
   {
-    slot: "Morning",
+    slot: "morning",
+    label: "Morning",
     time: "Before breakfast",
-    value: "98",
-    status: "Completed",
   },
   {
-    slot: "After Breakfast",
+    slot: "after_breakfast",
+    label: "After Breakfast",
     time: "Post meal",
-    value: "148",
-    status: "Completed",
   },
   {
-    slot: "After Lunch",
+    slot: "after_lunch",
+    label: "After Lunch",
     time: "Post meal",
-    value: "126",
-    status: "Completed",
   },
   {
-    slot: "After Dinner",
+    slot: "after_dinner",
+    label: "After Dinner",
     time: "Post meal",
-    value: "--",
-    status: "Pending",
   },
 ];
 
-function Dashboard() {
-  return (
-    <div className="space-y-8">
+const today = getTodayDate();
+
+const todayReadings = readingSlots.map((slot) => {
+  const reading = readings.find(
+    (item) =>
+      item.reading_date?.split("T")[0] === today &&
+      item.slot === slot.slot,
+  );
+
+  return {
+    slot: slot.label,
+    time: slot.time,
+    value: reading ? String(reading.value) : "--",
+    status: reading ? "Completed" : "Pending",
+  };
+});
+
+ return (
+  <div className="space-y-8">
+    {loading && (
+      <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-500">
+        Loading dashboard data...
+      </div>
+    )}
       {/* Page Heading */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -136,7 +192,7 @@ function Dashboard() {
           </div>
 
           <div className="rounded-lg bg-teal-50 px-3 py-1.5 text-sm font-medium text-teal-700">
-            3 of 4 completed
+            {todayReadings.filter((reading) => reading.status === "Completed").length} of 4 completed
           </div>
         </div>
 
