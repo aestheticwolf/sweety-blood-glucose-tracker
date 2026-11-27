@@ -30,10 +30,10 @@ function Sidebar() {
   const userInitial = userName.charAt(0).toUpperCase();
 
   return (
-    <aside className="flex h-screen w-64 flex-col border-r border-slate-200 bg-white px-5 py-6">
+    <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-slate-200 bg-white px-5 py-6">
       {/* Brand */}
       <div className="mb-10 flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-600 text-white">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white">
           <Heart size={22} fill="currentColor" />
         </div>
 
@@ -46,7 +46,7 @@ function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1">
+      <nav className="min-h-0 flex-1 overflow-y-auto">
         <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
           Menu
         </p>
@@ -72,13 +72,15 @@ function Sidebar() {
       {/* Bottom Profile */}
       <div className="border-t border-slate-200 pt-4">
         <div className="flex items-center gap-3 rounded-xl px-2 py-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-700">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-700">
             {userInitial}
           </div>
 
-          <div>
-            <p className="text-sm font-medium text-slate-800">{userName}</p>
-            <p className="text-xs text-slate-500">Personal health</p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-slate-800">
+              {userName}
+            </p>
+            <p className="truncate text-xs text-slate-500">Personal health</p>
           </div>
         </div>
       </div>
