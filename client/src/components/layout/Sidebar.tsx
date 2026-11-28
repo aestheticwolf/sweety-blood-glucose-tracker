@@ -1,4 +1,4 @@
-import { LayoutDashboard, Activity, ChartNoAxesCombined, Settings, Heart } from "lucide-react";
+import { LayoutDashboard, Activity, ChartNoAxesCombined, Settings } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
@@ -34,9 +34,11 @@ function Sidebar() {
     <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-slate-200 bg-white px-5 py-6">
       {/* Brand */}
       <div className="mb-10 flex items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white">
-          <Heart size={22} fill="currentColor" />
-        </div>
+        <img
+          src="/branding/sweety-icon.svg"
+          alt="Sweety icon"
+          className="h-11 w-11 shrink-0"
+        />
 
         <div>
           <h1 className="text-xl font-bold tracking-tight text-slate-900">

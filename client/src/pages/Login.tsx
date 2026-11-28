@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { HeartPulse, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 function Login() {
@@ -46,16 +46,11 @@ function Login() {
       <div className="w-full max-w-md">
         {/* Brand */}
         <div className="flex justify-center mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-600 flex items-center justify-center text-white">
-              <HeartPulse size={26} />
-            </div>
-
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Sweety</h1>
-              <p className="text-sm text-gray-500">Blood Glucose Tracker</p>
-            </div>
-          </div>
+          <img
+            src="/branding/sweety-logo.svg"
+            alt="Sweety — Blood Glucose Tracker"
+            className="h-14 w-auto max-w-full"
+          />
         </div>
 
         {/* Login Card */}
