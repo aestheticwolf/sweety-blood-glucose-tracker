@@ -352,3 +352,51 @@ Start PostgreSQL, configure `server/.env` and `client/.env`, and run `npm run de
 - Improve reporting with options to export reports.
 - Enhance accessibility and responsiveness across different devices.
 - Add automated backend and frontend tests to improve reliability.
+
+## Screenshots
+
+### Authentication
+
+#### Login
+![Login](screenshots/login.png)
+
+#### Sign Up
+![Sign Up](screenshots/signup.png)
+
+### Dashboard
+
+#### Main Dashboard
+![Main Dashboard](screenshots/dashboard.png)
+
+### Blood Glucose Management
+
+#### Blood Glucose Readings
+![Blood Glucose Readings](screenshots/blood-glucose-reading.png)
+
+#### Add Reading
+![Add Reading](screenshots/add-reading.png)
+
+#### Add Glucose Reading
+![Add Glucose Reading](screenshots/add-glucose-reading.png)
+
+#### Update Reading
+![Update Reading](screenshots/update-reading.png)
+
+### Reports & Analytics
+
+#### Daily Report
+![Daily Report](screenshots/daily-report.png)
+
+#### Month-to-Date Report
+![Month-to-Date Report](screenshots/month-to-date-report.png)
+
+#### Previous Month Report
+![Previous Month Report](screenshots/previous-month-report.png)
+
+#### Monthly Glucose Chart
+![Monthly Glucose Chart](screenshots/monthly-glucose-chart.png)
+
+### Pagination
+
+#### Reading Pagination with Seed Data
+![Reading Pagination with Seed Data](screenshots/pagination-with-seed.png)
