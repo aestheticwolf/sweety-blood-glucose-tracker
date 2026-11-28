@@ -348,8 +348,7 @@ Start PostgreSQL, configure `server/.env` and `client/.env`, and run `npm run de
 
 ## Improvements With More Time
 
-- Add automated frontend and backend tests.
-- Add Docker support for easier setup and deployment.
-- Add reminders for recording readings.
-- Expand reporting and data visualization capabilities.
-- Further improve responsive layouts and mobile usability.
+- Add reminder notifications for scheduled glucose readings.
+- Improve reporting with options to export reports.
+- Enhance accessibility and responsiveness across different devices.
+- Add automated backend and frontend tests to improve reliability.

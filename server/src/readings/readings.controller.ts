@@ -63,7 +63,6 @@ export const createReading = async (req: Request, res: Response) => {
       });
     }
 
-    // Insert reading
     const result = await pool.query(
       `INSERT INTO readings (user_id, reading_date, slot, value)
        VALUES ($1, $2, $3, $4)

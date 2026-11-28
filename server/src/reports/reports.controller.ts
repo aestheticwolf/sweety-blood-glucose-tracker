@@ -51,7 +51,6 @@ const getDailyReadings = async (
   return result.rows;
 };
 
-// Daily report
 export const getDailyReport = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
@@ -140,7 +139,6 @@ export const getMonthlyReport = async (req: Request, res: Response) => {
   }
 };
 
-// Previous month report
 export const getPreviousMonthReport = async (
   req: Request,
   res: Response,
